@@ -39,7 +39,9 @@ def create_random_test_vector(assessment_file):
     comb_df = pd.read_csv(assessment_file)
 
     # Seperate out vectors and create random walks
-    days  = [0 for i in range(len(comb_df.values))]
+    days = []
+    for i in range(len(comb_df.values)):
+        days.append(i)
     trend = generate_random_walk_vector(len(comb_df['trend'].values))
     close = generate_random_walk_vector(len(comb_df['trend'].values))
 
@@ -61,7 +63,9 @@ def create_combined_random_vector(assessment_file):
     comb_df = pd.read_csv(assessment_file)
 
     # Seperate out vectors and create random walk(s)
-    days  = [0 for i in range(len(comb_df.values))]
+    days = []
+    for i in range(len(comb_df.values)):
+        days.append(i)
     trend = comb_df['trend'].values
     close = generate_random_walk_vector(len(trend))
 
@@ -81,7 +85,9 @@ def create_combined_vector(assessment_file):
     comb_df = pd.read_csv(assessment_file)
 
     # Seperate out vectors
-    days  = [0 for i in range(len(comb_df.values))]
+    days = []
+    for i in range(len(comb_df.values)):
+        days.append(i)
     trend = comb_df['trend'].values
     close = comb_df['adjusted_close'].values
 
@@ -89,19 +95,20 @@ def create_combined_vector(assessment_file):
     days  = days[1:]
     trend = ss.zscore(trend[1:])
     close = ss.zscore(np.diff(close))
-
-
+    
     return (trend, close, days)
 
 def show_comparison_graph(d1, v1, v2,
                           v1_label='v1_line',
-                          v2_label='v2_line'):
+                          v2_label='v2_line',
+                          title=""):
     """
     Plot two vectors for comparison against one another
     This will pause the application until you close the plot
     """
     plt.plot(d1, v1, 'b-', label=v1_label)                           
-    plt.plot(d1, v2, 'r-', label=v2_label)                           
+    plt.plot(d1, v2, 'r-', label=v2_label)
+    plt.title(title)
     plt.legend(loc='upper left')                                                      
     plt.show()  
 
@@ -109,7 +116,7 @@ list_of_test_files = [
     'data/BTC+bitcoin-btc.csv',
     'data/ETH+ethereum-eth.csv',
     'data/LTC+litecoin-ltc.csv',
-    'data/BCH+bitcoin cash-bch.csv',
+    # 'data/BCH+bitcoin cash-bch.csv',
     'data/XRP+ripple-xrp.csv',
     'data/XMR+monero-xmr.csv'
 ]
@@ -180,11 +187,11 @@ for filename in list_of_test_files:
                 best_lag.append(lag)
 
                 # print(asset_search, trend_search)
-                # show_comparison_graph(days[lag:], trend[:-lag], close[lag:],
-                #                       v1_label="trend", v2_label="close")
-            
-
-
+                
+    #show_comparison_graph(days, trend, close,
+    #                      v1_label="trend",
+    #                      v2_label="close",
+    #                      title = asset_search + " vs " + trend_search)
 
     if len(lag_numbers):
         yes_causality.append((asset_search, trend_search, len(combined_vector)))
@@ -218,12 +225,10 @@ for row in fmt_output:
     print("%s, %s, %3d, %7.5f, %5.3f" % row)
     output.writerow(row)
 
-count_causality_same_as_asset = 0
 count = 0
 
 print("\n===========================================================\n")
 
-print("\n-------------------------------------------------------\n")
 print("No Causility\n")
 for row in no_causality:
     print("%s and %s showed NO causality, count: %d" % row)
@@ -249,9 +254,6 @@ if count == 0:
 print("Percent showing causality: %3.2f\n" %
       (float(len(yes_causality)) / float(count)))
 
-print("Percent showing causality, same as asset: %3.2f\n" %
-      (float(count_causality_same_as_asset) / float(count)))
-
 lag_dict = {x:total_lag.count(x) for x in total_lag}
 lag = OrderedDict(sorted(lag_dict.items()))
 
@@ -271,16 +273,17 @@ for i in best_lag:
     x_best.append(i)
     y_best.append(best_lag[i])
 
-print("Strong p-value: %d" % np.sum(y))
-print("Super strong p-value: %d" % np.sum(y_best))
+print("Correlation: %d" % np.sum(y))
+print("Strong Correlation: %d" % np.sum(y_best))
 
 """
 Generate graph
 """
 width = 1/1.5
-plt.bar(x, y, width, color="blue")
-plt.bar(x_best, y_best, width, color="red")
+plt.bar(x, y, width, color="blue", label="Correlation")
+plt.bar(x_best, y_best, width, color="red", label="Strong Correlation")
 plt.title("Correlations Prior to Event (in Days)")
 plt.xlabel("Days Prior to an Event")
 plt.ylabel("Number of Correlations")
+#plt.legend(loc='upper right')
 plt.show()
