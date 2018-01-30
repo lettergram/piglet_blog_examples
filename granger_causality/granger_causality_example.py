@@ -41,7 +41,8 @@ def generate_random_walk_vector(length):
 def create_combined_random_vector(assessment_file):
     """
     Create a new combined vector for ingestion into
-    the granger causality function  
+    the granger causality function
+    Using a random walk for closing, as opposed to real data
     """
 
     comb_df = pd.read_csv(assessment_file)
