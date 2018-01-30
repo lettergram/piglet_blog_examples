@@ -48,7 +48,7 @@ def create_combined_random_vector(assessment_file):
     comb_df = pd.read_csv(assessment_file)
     days = []
     for i in range(len(comb_df.values)):
-	days.append(i)
+        days.append(i)
     trend = comb_df['trend'].values
     close = generate_random_walk_vector(len(trend))
 
@@ -177,7 +177,7 @@ for filename in list_of_test_files:
 """
 Big formatted output section
 """
-output_file     = open("data/output.csv", 'wb')
+output_file     = open("data/output.csv", 'w')
 output          = csv.writer(output_file, delimiter=',')
 row = ["asset", "trend", "lag", "p-value", "corr"]
 print(row)
