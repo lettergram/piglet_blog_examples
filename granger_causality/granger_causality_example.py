@@ -1,22 +1,13 @@
-import os
-import sys
 import csv
-import math
-import json
-import datetime
 import random
-import requests
 
 from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import statsmodels
-from statsmodels import tsa
 from statsmodels.tsa import stattools
 import scipy.stats as ss
-from scipy import signal
 
 
 def generate_random_walk_vector(length):
@@ -38,6 +29,28 @@ def generate_random_walk_vector(length):
         data.append(val)
     return np.array(data)
 
+def create_random_test_vector(assessment_file):
+    """
+    Create a new combined vector for ingestion into
+    the granger causality function
+    Using a random walk for closing, as opposed to real data
+    """
+
+    comb_df = pd.read_csv(assessment_file)
+    days = []
+    for i in range(len(comb_df.values)):
+        days.append(i)
+    trend = generate_random_walk_vector(len(comb_df['trend'].values))
+    close = generate_random_walk_vector(len(comb_df['trend'].values))
+
+    # Resize
+    days  = days[1:]
+    trend = ss.zscore(trend[1:])
+    close = ss.zscore(np.diff(close))
+    
+    return (trend, close, days)
+
+
 def create_combined_random_vector(assessment_file):
     """
     Create a new combined vector for ingestion into
@@ -52,12 +65,12 @@ def create_combined_random_vector(assessment_file):
     trend = comb_df['trend'].values
     close = generate_random_walk_vector(len(trend))
 
-    # Resample and normalize to same size   
-    trend = ss.zscore(trend)
-    close = ss.zscore(signal.resample(np.diff(close), len(comb_df.values)))
+    # Resize
+    days  = days[1:]
+    trend = ss.zscore(trend[1:])
+    close = ss.zscore(np.diff(close))
     
     return (trend, close, days)
-
 
 def create_combined_vector(assessment_file):
     """
@@ -72,29 +85,33 @@ def create_combined_vector(assessment_file):
     trend = comb_df['trend'].values
     close = comb_df['adjusted_close'].values
 
-    # Resample and normalize to same size
-    trend = ss.zscore(trend)
-    close = ss.zscore(signal.resample(np.diff(close), len(comb_df.values)))
+    # Resize
+    days  = days[1:]
+    trend = ss.zscore(trend[1:])
+    close = ss.zscore(np.diff(close))
+
 
     return (trend, close, days)
 
+def show_comparison_graph(d1, v1, v2,
+                          v1_label='v1_line',
+                          v2_label='v2_line'):
+    """
+    Plot two vectors for comparison against one another
+    This will pause the application until you close the plot
+    """
+    plt.plot(d1, v1, 'b-', label=v1_label)                           
+    plt.plot(d1, v2, 'r-', label=v2_label)                           
+    plt.legend(loc='upper left')                                                      
+    plt.show()  
 
 list_of_test_files = [
-    'data/ADA+cardano-ada.csv',
-    'data/BCH+bitcoin cash-bch.csv',
     'data/BTC+bitcoin-btc.csv',
-    'data/DASH+dash-digitalcash.csv',
-    'data/EOS+eos.csv',
     'data/ETH+ethereum-eth.csv',
     'data/LTC+litecoin-ltc.csv',
-    'data/NEO+neo.csv',
-    'data/TRX+tron-trx-tronix.csv',
-    'data/XEM+nem-xem.csv',
-    'data/XLM+stellar-xlm.csv',
-    'data/XMR+monero-xmr.csv',
-    'data/XRB+raiblocks-xrb.csv',
+    'data/BCH+bitcoin cash-bch.csv',
     'data/XRP+ripple-xrp.csv',
-    'data/ZEC+zcash-zec.csv'    
+    'data/XMR+monero-xmr.csv'
 ]
 
 fmt_output = []
@@ -109,8 +126,17 @@ total_lag = [] # p-value less than strong_p_value
 best_lag  = [] # p-value less than super_strong_p_value 
 
 for filename in list_of_test_files:
-    
+
+    # Real trend and close vectors from https://projectpiglet.com - 01/30/2018
     (trend, close, days) = create_combined_vector(filename)
+
+    # Real trend and random walk close vectors
+    # (trend, close, days) = create_combined_random_vector(filename)
+
+    # Random walk trend and random walk close vectors
+    # (trend, close, days) = create_random_test_vector(filename)
+
+    
     asset_search = filename.split("+")[1].replace(".csv", "").replace("-", "|")
     trend_search = filename.split("+")[0]
 
@@ -145,13 +171,19 @@ for filename in list_of_test_files:
     lag_numbers = []
     for lag in gc:
         
-        fp = (lag, gc[lag][0]['ssr_ftest'][0], gc[lag][0]['ssr_ftest'][1])
+        fp = (lag, gc[lag][0]['ssr_ftest'][0], gc[lag][0]['ssr_ftest'][1])        
 
         if gc[lag][0]['ssr_ftest'][1] < strong_p_value and lag > 1:
             lag_numbers.append(lag)
             total_lag.append(lag)
             if gc[lag][0]['ssr_ftest'][1] < super_strong_p_value:
                 best_lag.append(lag)
+
+                # print(asset_search, trend_search)
+                # show_comparison_graph(days[lag:], trend[:-lag], close[lag:],
+                #                       v1_label="trend", v2_label="close")
+            
+
 
 
     if len(lag_numbers):
@@ -192,7 +224,6 @@ count = 0
 print("\n===========================================================\n")
 
 print("\n-------------------------------------------------------\n")
-print("** - represents that the phrases match the asset name\n\n")
 print("No Causility\n")
 for row in no_causality:
     print("%s and %s showed NO causality, count: %d" % row)
