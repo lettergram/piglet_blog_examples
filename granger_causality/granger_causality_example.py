@@ -5,10 +5,10 @@ from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from statsmodels.tsa import stattools
 import scipy.stats as ss
+from statsmodels.tsa import stattools
 
+import matplotlib.pyplot as plt
 
 def generate_random_walk_vector(length):
     """
@@ -37,13 +37,13 @@ def create_random_test_vector(assessment_file):
     """
 
     comb_df = pd.read_csv(assessment_file)
-    days = []
-    for i in range(len(comb_df.values)):
-        days.append(i)
+
+    # Seperate out vectors and create random walks
+    days  = [0 for i in range(len(comb_df.values))]
     trend = generate_random_walk_vector(len(comb_df['trend'].values))
     close = generate_random_walk_vector(len(comb_df['trend'].values))
 
-    # Resize
+    # Resize and normalize
     days  = days[1:]
     trend = ss.zscore(trend[1:])
     close = ss.zscore(np.diff(close))
@@ -59,13 +59,13 @@ def create_combined_random_vector(assessment_file):
     """
 
     comb_df = pd.read_csv(assessment_file)
-    days = []
-    for i in range(len(comb_df.values)):
-        days.append(i)
+
+    # Seperate out vectors and create random walk(s)
+    days  = [0 for i in range(len(comb_df.values))]
     trend = comb_df['trend'].values
     close = generate_random_walk_vector(len(trend))
 
-    # Resize
+    # Resize and normalize
     days  = days[1:]
     trend = ss.zscore(trend[1:])
     close = ss.zscore(np.diff(close))
@@ -79,13 +79,13 @@ def create_combined_vector(assessment_file):
     """
     
     comb_df = pd.read_csv(assessment_file)
-    days = []
-    for i in range(len(comb_df.values)):
-        days.append(i)
+
+    # Seperate out vectors
+    days  = [0 for i in range(len(comb_df.values))]
     trend = comb_df['trend'].values
     close = comb_df['adjusted_close'].values
 
-    # Resize
+    # Resize and normalize
     days  = days[1:]
     trend = ss.zscore(trend[1:])
     close = ss.zscore(np.diff(close))
